@@ -3,7 +3,7 @@ import os
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import StratifiedKFold
 
 # Diretório onde seus dados estão localizados
@@ -39,8 +39,10 @@ y_encoded = label_encoder.fit_transform(y)
 # Inicialize o validador cruzado com 10-fold estratificado
 kf = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
 
-# Lista para armazenar as precisões de cada fold
+# Listas para armazenar as precisões de cada fold
 accuracies = []
+f1_macro_scores = []
+f1_micro_scores = []
 
 # Treinamento e teste para cada fold
 for train_index, test_index in kf.split(X, y_encoded):
@@ -59,6 +61,19 @@ for train_index, test_index in kf.split(X, y_encoded):
     accuracy = accuracy_score(y_test, y_pred)
     accuracies.append(accuracy)
 
+    # Calcular as métricas F1-macro e F1-micro
+    report = classification_report(y_test, y_pred, output_dict=True)
+    f1_macro = report['macro avg']['f1-score']
+    
+    # Verificar se a chave 'micro avg' existe no dicionário
+    if 'micro avg' in report:
+        f1_micro = report['micro avg']['f1-score']
+    else:
+        f1_micro = 0.0  # Ou qualquer valor adequado
+
+    f1_macro_scores.append(f1_macro)
+    f1_micro_scores.append(f1_micro)
+
     # Mapear rótulos de volta para nomes de classes
     class_names = label_encoder.classes_
     y_test_names = [class_names[i] for i in y_test]
@@ -70,4 +85,9 @@ for train_index, test_index in kf.split(X, y_encoded):
 
 # Calcula a precisão média dos 10 folds
 mean_accuracy = np.mean(accuracies)
+mean_f1_macro = np.mean(f1_macro_scores)
+mean_f1_micro = np.mean(f1_micro_scores)
+
 print(f'Precisão média do modelo (10-fold): {mean_accuracy:.2f}')
+print(f'F1-macro médio do modelo (10-fold): {mean_f1_macro:.2f}')
+print(f'F1-micro médio do modelo (10-fold): {mean_f1_micro:.2f}')
