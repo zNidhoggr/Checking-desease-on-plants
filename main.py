@@ -43,6 +43,7 @@ kf = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
 accuracies = []
 f1_macro_scores = []
 f1_micro_scores = []
+precision_scores = []
 
 # Treinamento e teste para cada fold
 for train_index, test_index in kf.split(X, y_encoded):
@@ -74,6 +75,10 @@ for train_index, test_index in kf.split(X, y_encoded):
     f1_macro_scores.append(f1_macro)
     f1_micro_scores.append(f1_micro)
 
+    # Calcular a métrica de precisão
+    precision = report['macro avg']['precision']
+    precision_scores.append(precision)
+
     # Mapear rótulos de volta para nomes de classes
     class_names = label_encoder.classes_
     y_test_names = [class_names[i] for i in y_test]
@@ -87,7 +92,10 @@ for train_index, test_index in kf.split(X, y_encoded):
 mean_accuracy = np.mean(accuracies)
 mean_f1_macro = np.mean(f1_macro_scores)
 mean_f1_micro = np.mean(f1_micro_scores)
+mean_precision = np.mean(precision_scores)
 
-print(f'Precisão média do modelo (10-fold): {mean_accuracy:.2f}')
+print(f'Acuracia média do modelo (10-fold): {mean_accuracy:.2f}')
 print(f'F1-macro médio do modelo (10-fold): {mean_f1_macro:.2f}')
 print(f'F1-micro médio do modelo (10-fold): {mean_f1_micro:.2f}')
+print(f'Precisão média do modelo (10-fold): {mean_precision:.2f}')
+
