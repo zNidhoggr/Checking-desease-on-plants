@@ -1,3 +1,6 @@
+//Adicionar mais imagens a base de dados, melhorar as classes desbalanciadas, e testar outros classificadores, para depois usar redes neurais
+
+
 import cv2
 import os
 import numpy as np
