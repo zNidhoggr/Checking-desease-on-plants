@@ -9,17 +9,17 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 from skimage.feature import local_binary_pattern
 from scipy.stats import wilcoxon
 
-# Diretório onde suas amostras estão localizadas
+# Diretório onde as amostras estão localizadas
 data_dir = 'D:/UFCA/Aprendizado de Maquina/Projeto/Detectar diseases em plantas/DataBase'
 
-# Função para extrair recursos LBP de uma imagem
+# Função para extrair recursos LBP da imagem
 def extract_lbp_features(image):
     radius = 3
     n_points = 24
     lbp_image = local_binary_pattern(image, n_points, radius, method='uniform')
     hist, _ = np.histogram(lbp_image.ravel(), bins=np.arange(0, n_points + 3), range=(0, n_points + 2))
     hist = hist.astype("float")
-    hist /= (hist.sum() + 1e-5)  # Normalize the histogram
+    hist /= (hist.sum() + 1e-5)  # Normalização do histograma
     return hist
 
 # Listas para armazenar dados de treinamento (histogramas de cores, recursos LBP) e rótulos de treinamento
@@ -34,9 +34,6 @@ for class_name in os.listdir(os.path.join(data_dir, 'train')):
     # Iterar sobre as imagens no diretório
     for image_name in os.listdir(class_dir):
         image_path = os.path.join(class_dir, image_name)
-
-        # Adicionando instrução de impressão para depuração
-        # print(f'Processando amostra: {image_path}')
 
         # Carregar a amostra
         sample = cv2.imread(image_path)
@@ -54,18 +51,18 @@ for class_name in os.listdir(os.path.join(data_dir, 'train')):
         sample_lbp_features = extract_lbp_features(sample_gray)
         X_lbp.append(sample_lbp_features)
 
-# Converta rótulos de amostras em números inteiros
+# Converte rótulos de amostras em números inteiros
 label_encoder = LabelEncoder()
 y_encoded = label_encoder.fit_transform(y)
 
-# Divida seus dados em treinamento (80%) e teste (20%)
+# Divide os dados em treinamento (80%) e teste (20%)
 X_train_hist, X_test_hist, y_train_encoded, y_test_encoded = train_test_split(X_hist, y_encoded, test_size=0.2, random_state=42)
 X_train_lbp, X_test_lbp, y_train_encoded_lbp, y_test_encoded_lbp = train_test_split(X_lbp, y_encoded, test_size=0.2, random_state=42)
 
-# Inicialize o validador cruzado com 10-fold estratificado
+# Inicializa o validador cruzado com 10-fold estratificado
 kf = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
 
-# Função para treinar e testar um modelo com base nos recursos fornecidos
+# Função para treinar e testar um modelo
 def train_and_test(X, model, model_name, X_test=None, y_test=None):
     # Listas para armazenar as métricas e matrizes de confusão de cada fold
     accuracies = []
@@ -75,12 +72,9 @@ def train_and_test(X, model, model_name, X_test=None, y_test=None):
     confusion_matrices = []
 
     # Treinamento e teste para cada fold
-    for train_index, test_index in kf.split(X, y_train_encoded):  # Use y_train_encoded aqui
+    for train_index, test_index in kf.split(X, y_train_encoded): 
         X_train, X_val = np.array(X)[train_index], np.array(X)[test_index]
         y_train, y_val = np.array(y_train_encoded)[train_index], np.array(y_train_encoded)[test_index]
-
-        # Adicionando instrução de impressão para depuração
-        # print(f'Iniciando treinamento e teste para o Fold')
 
         # Treinamento do modelo nos recursos de treinamento
         model.fit(X_train, y_train)
@@ -136,38 +130,38 @@ def train_and_test(X, model, model_name, X_test=None, y_test=None):
         for i, cm in enumerate(confusion_matrices):
             print(f'Matriz de Confusão - Fold {i+1}:\n{cm}\n')
 
-# Divida seus dados em treinamento (80%) e teste (20%) uma única vez
+# Divide os dados em treinamento (80%) e teste (20%) uma única vez
 X_train_hist, X_test_hist, y_train_encoded, y_test_encoded = train_test_split(X_hist, y_encoded, test_size=0.2, random_state=42)
 X_train_lbp, X_test_lbp, y_train_encoded_lbp, y_test_encoded_lbp = train_test_split(X_lbp, y_encoded, test_size=0.2, random_state=42)
 
-# Treine e teste o modelo Random Forest com recursos de histogramas de cores
+# Treina e testa o modelo Random Forest com recursos de histogramas de cores
 rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
 train_and_test(X_train_hist, rf_model, 'Random Forest com Histograma de Cores', X_test=X_test_hist, y_test=y_test_encoded)
 
-# Treine e teste o modelo Random Forest com recursos LBP
+# Treina e testa o modelo Random Forest com recursos LBP
 rf_model_lbp = RandomForestClassifier(n_estimators=100, random_state=42)
 train_and_test(X_train_lbp, rf_model_lbp, 'Random Forest com LBP', X_test=X_test_lbp, y_test=y_test_encoded_lbp)
 
-# Inicialize o classificador SVM
+# Inicializa o classificador SVM
 svm_model = SVC(kernel='linear', C=1.0, random_state=42)
 
-# Teste os modelos nos dados de teste
+# Testa os modelos nos dados de teste
 train_and_test(X_test_hist, svm_model, 'SVM com Histograma de Cores (Teste)', X_test=X_test_hist, y_test=y_test_encoded)
 train_and_test(X_test_hist, rf_model, 'Random Forest com Histograma de Cores (Teste)', X_test=X_test_hist, y_test=y_test_encoded)
 train_and_test(X_test_lbp, rf_model_lbp, 'Random Forest com LBP (Teste)', X_test=X_test_lbp, y_test=y_test_encoded)
 
-# Adicione o teste de Wilcoxon para comparar as três configurações
-# Defina as listas de métricas para cada configuração
+# Adiciona o teste de Wilcoxon para comparar as três configurações
+# Define as listas de métricas para cada configuração
 accuracies_histogram_rf = [1.00, 1.00, 0.00, 1.00]
 accuracies_lbp_rf = [0.98, 0.98, 0.00, 0.98]
 accuracies_svm = ["Histograma + SVM"]
 
-# Realize o teste de Wilcoxon usando as métricas obtidas
+# Realiza o teste de Wilcoxon usando as métricas obtidas
 _, p_value_accuracies_rf_lbp = wilcoxon(accuracies_histogram_rf, accuracies_lbp_rf)
 _, p_value_accuracies_rf_svm = wilcoxon(accuracies_histogram_rf, accuracies_svm)
 _, p_value_accuracies_lbp_svm = wilcoxon(accuracies_lbp_rf, accuracies_svm)
 
-# Imprima os resultados
+# Imprime os resultados
 print(f'p-value para Acurácia entre "Histograma + Random Forest" e "LBP + Random Forest": {p_value_accuracies_rf_lbp}')
 print(f'p-value para Acurácia entre "Histograma + Random Forest" e "Histograma + SVM": {p_value_accuracies_rf_svm}')
 print(f'p-value para Acurácia entre "LBP + Random Forest" e "Histograma + SVM": {p_value_accuracies_lbp_svm}')
